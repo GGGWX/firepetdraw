@@ -1,0 +1,943 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chat Draw Demo</title>
+  <style>
+    :root{
+      --bg:#f2f3f5;
+      --text:#111827;
+      --muted:#6b7280;
+      --blue:#1677ff;
+      --line:#e5e7eb;
+      --shadow: 0 10px 30px rgba(0,0,0,.14);
+
+      --accent:#ff7a18;
+      --accent2:#ffd56a;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", Arial;
+      background: linear-gradient(#f8fafc, #f3f4f6);
+      height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:var(--text);
+    }
+    .phone{
+      width: 410px;
+      height: 840px;
+      background:#fff;
+      border-radius: 42px;
+      box-shadow: 0 30px 80px rgba(0,0,0,.20);
+      border: 10px solid #111827;
+      position:relative;
+      overflow:hidden;
+    }
+    .topbar{
+      height: 86px;
+      padding: 18px 16px 10px;
+      border-bottom: 1px solid var(--line);
+      display:flex;
+      align-items:flex-end;
+      gap:12px;
+      background:#fff;
+    }
+    .back{ width:28px;height:28px; display:grid;place-items:center; font-size:22px; user-select:none; transform: translateY(2px);}
+    .avatar{
+      width:40px;height:40px;border-radius:50%;
+      background: radial-gradient(circle at 30% 30%, #ffd28a, #ff7a18);
+      border:2px solid #fff; box-shadow: 0 10px 20px rgba(0,0,0,.12);
+    }
+    .title{ flex:1; display:flex; flex-direction:column; gap:4px; padding-bottom:4px;}
+    .nameRow{ display:flex; align-items:center; gap:8px; font-weight:800; font-size:18px;}
+    .badge{ font-weight:900; color:#ff3b30; font-size:16px;}
+    .status{ font-size:12px; color:var(--muted); margin-top:-2px;}
+    .icons{ display:flex; gap:16px; padding-bottom:6px; opacity:.85; font-size:20px; user-select:none;}
+
+    .chat{
+      height: calc(100% - 86px - 128px);
+      background: var(--bg);
+      padding: 16px;
+      overflow:auto;
+    }
+    .hint{
+      margin: 2px auto 14px;
+      width: fit-content;
+      padding: 10px 12px;
+      border-radius: 16px;
+      background:#fff;
+      border:1px solid var(--line);
+      color:var(--muted);
+      font-size:13px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .aiTag{
+      width:22px;height:22px;border-radius:11px;
+      display:grid;place-items:center;
+      color:#fff; background: #ff7a18;
+      font-weight:900; font-size:12px;
+    }
+    .bubbleRow{ display:flex; justify-content:flex-end; margin-top: 10px; gap:8px; align-items:flex-end;}
+    .bubble{
+      max-width: 72%;
+      background: var(--blue);
+      color:#fff;
+      padding: 12px 14px;
+      border-radius: 18px 18px 6px 18px;
+      box-shadow: 0 6px 16px rgba(22,119,255,.25);
+      font-weight:700;
+    }
+    .bubbleImg{
+      background:#fff; padding:10px;
+      border-radius: 18px 18px 6px 18px;
+      border:1px solid var(--line);
+      box-shadow: 0 8px 20px rgba(0,0,0,.10);
+      max-width: 72%;
+    }
+    .bubbleImg img{ display:block; width:220px; max-width:100%; border-radius:12px; background:#000;}
+    .myAvatar{
+      width:40px;height:40px;border-radius:50%;
+      background: radial-gradient(circle at 30% 30%, #7dd3fc, #2563eb);
+      border: 2px solid #fff;
+      box-shadow: 0 8px 18px rgba(0,0,0,.14);
+    }
+
+    .bottombar{
+      height: 128px;
+      background:#fff;
+      border-top: 1px solid var(--line);
+      padding: 12px 12px 14px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .quickRow{ display:flex; gap:10px; align-items:center; justify-content:space-between; }
+    .quickActions{ display:flex; gap:10px; flex:1; overflow:hidden; }
+    .pill{
+      background:#fff;
+      border:1px solid var(--line);
+      color:#111827;
+      padding: 10px 12px;
+      border-radius: 18px;
+      font-size:14px;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      gap:8px;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .drawPill{
+      background: rgba(255,122,24,.10);
+      border: 1px solid rgba(255,122,24,.28);
+      color: #ff7a18;
+      font-weight:900;
+      cursor:pointer;
+      box-shadow: 0 10px 18px rgba(255,122,24,.18);
+    }
+    .drawPill:hover{ background: rgba(255,122,24,.16); }
+
+    .inputRow{ display:flex; gap:10px; align-items:center; }
+    .compose{
+      flex:1;
+      background:#f3f4f6;
+      border:1px solid var(--line);
+      border-radius: 22px;
+      padding: 12px 12px;
+      color:#9ca3af;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .miniBtn{
+      width:42px;height:42px;border-radius:16px;
+      border:1px solid var(--line);
+      display:grid;place-items:center;
+      background:#fff;
+      cursor:pointer;
+      user-select:none;
+      font-size:20px;
+    }
+
+    .overlay{
+      position:absolute; inset:0;
+      background: rgba(0,0,0,.25);
+      display:none;
+      align-items:flex-end;
+      justify-content:center;
+      padding: 14px 14px 18px;
+      z-index: 30;
+    }
+    .panel{
+      width: 100%;
+      height: 74%;
+      background:#0b1220;
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      overflow:visible;
+      position:relative;
+      border: 1px solid rgba(255,255,255,.10);
+    }
+    .panelTop{
+      position:absolute; top:0;left:0;right:0;
+      height: 58px;
+      display:flex; align-items:center; justify-content:space-between;
+      padding: 0 12px;
+      background: linear-gradient(to bottom, rgba(0,0,0,.65), rgba(0,0,0,.08));
+      z-index:2;
+      color:#fff;
+    }
+    .brushPop{
+        position:absolute;
+        top: 120px !important;
+        right: 12px;
+        width: 220px;
+        padding: 12px 12px 10px;
+        border-radius: 16px;
+        background: rgba(255,255,255,.10);
+        border: 1px solid rgba(255,255,255,.18);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        color:#fff;
+        display:none;
+        z-index: 9999 !important;
+        }
+        .brushPopTitle{
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        font-weight:900;
+        font-size:13px;
+        margin-bottom: 10px;
+        letter-spacing:.2px;
+        }
+        #brushRange{
+        width: 100%;
+    }
+
+    .timer{
+      font-variant-numeric: tabular-nums;
+      font-weight:900;
+      letter-spacing:.4px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-size:14px;
+    }
+    .timerDot{
+      width:10px;height:10px;border-radius:5px;
+      background:#22c55e;
+      box-shadow: 0 0 14px rgba(34,197,94,.7);
+    }
+    .timerDot.running{
+      background:#ef4444;
+      box-shadow: 0 0 14px rgba(239,68,68,.8);
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse{
+      0%{transform:scale(1); opacity:.9}
+      50%{transform:scale(1.25); opacity:1}
+      100%{transform:scale(1); opacity:.9}
+    }
+    .panelActions{ display:flex; gap:10px; }
+    .ghostBtn{
+      background: rgba(255,255,255,.10);
+      border: 1px solid rgba(255,255,255,.18);
+      color:#fff;
+      padding: 10px 12px;
+      border-radius: 16px;
+      cursor:pointer;
+      font-weight:900;
+      font-size:13px;
+    }
+    canvas{ position:absolute; inset:0; width:100%; height:100%; cursor:crosshair; }
+    .panelHint{
+      position:absolute; bottom: 12px; left: 12px; right: 12px;
+      z-index:2;
+      color: rgba(255,255,255,.72);
+      font-size: 12px;
+      display:flex;
+      justify-content:space-between;
+      pointer-events:none;
+    }
+
+    .modalMask{
+      position:absolute; inset:0;
+      background: rgba(0,0,0,.40);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index: 40;
+      padding: 18px;
+    }
+    .modal{
+      width: 100%;
+      max-width: 360px;
+      background:#fff;
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .modalHead{ padding: 16px 16px 8px; font-weight:900; font-size: 16px; }
+    .modalBody{ padding: 0 16px 14px; color: var(--muted); font-size: 14px; line-height: 1.5; }
+    .modalFoot{ display:flex; gap:10px; padding: 14px 16px 16px; }
+    .btn{
+      flex:1;
+      padding: 12px 12px;
+      border-radius: 18px;
+      border:1px solid var(--line);
+      font-weight:900;
+      cursor:pointer;
+      background:#fff;
+    }
+    .btnShare{ background: var(--blue); color:#fff; border:none; }
+    /* 功能按钮紧凑化：适配 5 个按钮 */
+    .ghostBtnSmall{
+      padding: 8px 10px;
+      border-radius: 14px;
+      font-size: 12px;
+      line-height: 1;
+    }
+
+    /* 颜色选择浮层（和粗细浮层一致风格） */
+    .colorPop{
+      position:absolute;
+      top: 64px;
+      right: 12px;
+      width: 220px;
+      padding: 12px 12px 10px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.10);
+      border: 1px solid rgba(255,255,255,.18);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color:#fff;
+      display:none;
+      z-index: 6;
+    }
+    .colorPopTitle{
+      font-weight:900;
+      font-size:13px;
+      margin-bottom: 10px;
+      letter-spacing:.2px;
+    }
+    .swatches{
+      display:flex;
+      gap:12px;
+    }
+    .swatch{
+      width: 36px;
+      height: 36px;
+      border-radius: 18px;
+      border: 2px solid rgba(255,255,255,.35);
+      cursor:pointer;
+      background: #999;
+      box-shadow: 0 10px 18px rgba(0,0,0,.18);
+    }
+    .swatch:active{ transform: scale(0.96); }
+    .swatch[data-color="#ef4444"]{ background:#ef4444; }
+    .swatch[data-color="#3b82f6"]{ background:#3b82f6; }
+    .swatch[data-color="#facc15"]{ background:#facc15; }
+    .swatch[data-color="#22c55e"]{ background:#22c55e; }
+
+    /* 可选：当前选中态（JS 会加 .active） */
+    .swatch.active{
+      border-color: rgba(255,255,255,.95);
+      box-shadow: 0 0 0 2px rgba(255,255,255,.25), 0 12px 20px rgba(0,0,0,.20);
+    }
+
+  </style>
+</head>
+<body>
+  <div class="phone">
+    <div class="topbar">
+      <div class="back">‹</div>
+      <div class="avatar"></div>
+      <div class="title">
+        <div class="nameRow"><span>贵里贵气</span><span class="badge">🔥 159</span></div>
+        <div class="status">在线</div>
+      </div>
+      <div class="icons"><div>📞</div><div>🎥</div><div>⋯</div></div>
+    </div>
+
+    <div class="chat" id="chat">
+      <div class="hint"><span class="aiTag">AI</span><span>个性化精灵聊天已开启，点击查看</span><span style="opacity:.6;">›</span></div>
+      <div class="bubbleRow"><div class="bubble">想你了</div><div class="myAvatar"></div></div>
+    </div>
+
+    <div class="bottombar">
+      <div class="quickRow">
+        <button class="pill drawPill" id="openDraw">✍️ 绘制</button>
+        <div class="quickActions">
+          <div class="pill">👋 戳一戳</div>
+          <div class="pill">❤️ 比个心</div>
+          <div class="pill">@ 和精灵聊天</div>
+          <div class="pill">📞 语音</div>
+        </div>
+        
+      </div>
+
+      <div class="inputRow">
+        <div class="compose">发消息</div>
+        <div class="miniBtn">🎤</div>
+        <div class="miniBtn">😊</div>
+        <div class="miniBtn">＋</div>
+      </div>
+    </div>
+
+    <div class="overlay" id="overlay">
+      <div class="panel">
+        <div class="panelTop">
+          <div class="timer">
+            <span class="timerDot" id="timerDot"></span>
+            <span id="timerText">按下开始倒计时</span>
+          </div>
+          <div class="panelActions" id="panelActions">
+            <button class="ghostBtn ghostBtnSmall" id="colorBtn">颜色</button>
+            <button class="ghostBtn ghostBtnSmall" id="undoBtn">撤销</button>
+            <button class="ghostBtn ghostBtnSmall" id="brushBtn">粗细</button>
+            <button class="ghostBtn ghostBtnSmall" id="clearBtn">清空</button>
+            <button class="ghostBtn ghostBtnSmall" id="closeBtn">关闭</button>
+          </div>          
+        </div>
+
+        <canvas id="canvas"></canvas>
+
+        <div class="colorPop" id="colorPop" aria-hidden="true">
+          <div class="colorPopTitle">选择颜色</div>
+          <div class="swatches">
+            <button class="swatch" data-color="#ef4444" title="红"></button>
+            <button class="swatch" data-color="#3b82f6" title="蓝"></button>
+            <button class="swatch" data-color="#facc15" title="黄"></button>
+            <button class="swatch" data-color="#22c55e" title="绿"></button>
+          </div>
+        </div>
+        
+
+        <div class="brushPop" id="brushPop" aria-hidden="true">
+          <div class="brushPopTitle">笔刷粗细 <span id="brushVal">6</span></div>
+          <input id="brushRange" type="range" min="2" max="18" step="1" value="6" />
+        </div>
+
+        <div class="panelHint">
+          <span>提示：按下开始倒计时，到时间自动停止</span>
+          <span id="statusText">未开始</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="modalMask" id="modalMask">
+      <div class="modal">
+        <div class="modalHead">完成啦，要怎么处理？</div>
+        <div class="modalBody">倒计时已结束。你可以把这张涂鸦分享给对方，或重新绘制一张。</div>
+        <div class="modalFoot">
+          <button class="btn btnShare" id="shareBtn">分享</button>
+          <button class="btn" id="redoBtn">重新绘制</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+
+  const historyStack = [];
+  const MAX_HISTORY = 20; // 防止无限增长（demo 足够）
+
+  // ===== 线条拖尾（保留 BRUSH_SIZE & GLOW 的感觉）=====
+  const DURATION_SEC = 10;
+  let BRUSH_SIZE = 20;      // 你提到的 BRUSH_SIZE
+  let BRUSH_COLOR = '#63d7ff'; // 默认蓝青（你也可以默认蓝 #1677ff）
+  const GLOW = 14;           // 你提到的 GLOW
+  const TRAIL_FADE = 0;   // 残影强度
+
+  // 小火人笔尖大小（只作为笔头，不铺满轨迹）
+  const FLAME_SIZE = 22;
+
+
+  const colorBtn = document.getElementById('colorBtn');
+  const colorPop = document.getElementById('colorPop'); 
+
+  const chat = document.getElementById('chat');
+  const openDraw = document.getElementById('openDraw');
+  const overlay = document.getElementById('overlay');
+  const closeBtn = document.getElementById('closeBtn');
+  const clearBtn = document.getElementById('clearBtn');
+
+  const canvas = document.getElementById('canvas');
+  const timerText = document.getElementById('timerText');
+  const timerDot = document.getElementById('timerDot');
+  const statusText = document.getElementById('statusText');
+
+  const modalMask = document.getElementById('modalMask');
+  const shareBtn = document.getElementById('shareBtn');
+  const redoBtn = document.getElementById('redoBtn');
+  const undoBtn = document.getElementById('undoBtn');
+
+  const ctx = canvas.getContext('2d', { alpha: true });
+
+  const brushBtn = document.getElementById('brushBtn');
+  const brushPop = document.getElementById('brushPop');
+  const brushRange = document.getElementById('brushRange');
+  const brushVal = document.getElementById('brushVal');
+
+  let drawing = false;
+  let started = false;
+  let ended = false;
+
+  let remaining = DURATION_SEC;
+  let timerId = null;
+
+  let flameX = null;
+  let flameY = null;
+  let flameDir = 0;
+
+  let lastX = 0, lastY = 0;
+  let lastT = 0;
+
+
+
+  function closePops(){
+    if (typeof brushPop !== 'undefined' && brushPop) brushPop.style.display = 'none';
+    if (colorPop) colorPop.style.display = 'none';
+  }
+  function togglePop(el){
+    const show = el.style.display !== 'block';
+    closePops();
+    el.style.display = show ? 'block' : 'none';
+    el.setAttribute('aria-hidden', show ? 'false' : 'true');
+    console.log('togglePop ->', el.id, 'display=', el.style.display); // ✅ 看这里
+  }
+
+
+  function fitCanvas(){
+    const rect = canvas.getBoundingClientRect();
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+
+    historyStack.length = 0;
+
+    canvas.width = Math.floor(rect.width * dpr);
+    canvas.height = Math.floor(rect.height * dpr);
+
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+
+    ctx.clearRect(0,0,rect.width,rect.height);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0,0,rect.width,rect.height);
+  }
+
+  function openPanel(){
+    overlay.style.display = 'flex';
+    modalMask.style.display = 'none';
+
+    started = false;
+    ended = false;
+    drawing = false;
+    remaining = DURATION_SEC;
+
+    timerText.textContent = '按下开始倒计时';
+    statusText.textContent = '未开始';
+    timerDot.classList.remove('running');
+
+    fitCanvas();
+    closePops();
+  }
+
+  function closePanel(){
+    overlay.style.display = 'none';
+    modalMask.style.display = 'none';
+    stopTimer();
+  }
+
+  function clearCanvas(){
+    flameX = flameY = null;
+    const rect = canvas.getBoundingClientRect();
+    ctx.clearRect(0,0,rect.width,rect.height);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0,0,rect.width,rect.height);
+  }
+
+  function startTimer(){
+    if (timerId) return;
+    timerDot.classList.add('running');
+    statusText.textContent = '倒计时中';
+    timerText.textContent = formatTime(remaining);
+
+    timerId = setInterval(()=>{
+      remaining -= 1;
+      timerText.textContent = formatTime(remaining);
+      if (remaining <= 0) endDrawing();
+    }, 1000);
+  }
+
+  function stopTimer(){
+    if (timerId){
+      clearInterval(timerId);
+      timerId = null;
+    }
+    timerDot.classList.remove('running');
+  }
+
+  function endDrawing(){
+    if (ended) return;
+    ended = true;
+    drawing = false;
+    stopTimer();
+    statusText.textContent = '已结束';
+    timerText.textContent = '时间到';
+    modalMask.style.display = 'flex';
+  }
+
+  function formatTime(sec){
+    const s = Math.max(0, sec|0);
+    return `剩余 ${s}s`;
+  }
+
+  function getPoint(e){
+    const rect = canvas.getBoundingClientRect();
+    let clientX, clientY;
+    if (e.touches && e.touches[0]){
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+    return { x: clientX - rect.left, y: clientY - rect.top };
+  }
+
+  function fadeTrail(){
+    const rect = canvas.getBoundingClientRect();
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = `rgba(11,18,32,${TRAIL_FADE})`;
+    ctx.fillRect(0,0,rect.width,rect.height);
+    ctx.restore();
+  }
+
+  // ===== 线条笔迹（拖尾 + 光效）=====
+  function drawLine(x, y, t){
+    const dx = x - lastX;
+    const dy = y - lastY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const dt = Math.max(8, t - lastT);
+    const speed = dist / dt;
+
+    const width = clamp(BRUSH_SIZE + (1.2 - speed*18), 2.5, 10);
+
+    // 残影衰减（形成拖尾）
+    fadeTrail();
+
+    // 主体发光线（你原先的感觉）
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = hexToRgba(BRUSH_COLOR, 0.95);
+    ctx.shadowColor = hexToRgba(BRUSH_COLOR, 0.90);
+    ctx.shadowBlur = GLOW;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    ctx.restore();
+
+    // 芯线更亮一点
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = hexToRgba(BRUSH_COLOR, 0.95);
+    ctx.shadowColor = hexToRgba(BRUSH_COLOR, 0.85);
+    ctx.shadowBlur = GLOW * 0.6;
+    ctx.lineWidth = Math.max(1.5, width * 0.45);
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    ctx.restore();
+
+    // 笔尖小火人（只画在当前点，不铺满轨迹）
+    // drawFlameCursor(x, y, FLAME_SIZE, Math.atan2(dy, dx));
+
+    flameX = x;
+    flameY = y;
+    flameDir = Math.atan2(dy, dx);
+
+    // drawFlameCursor(flameX, flameY, FLAME_SIZE, flameDir);
+
+    lastX = x; lastY = y; lastT = t;
+  }
+
+  // ===== 小火人笔尖（橙黄渐变 + 眼睛 + 外发光）=====
+  function drawFlameCursor(x, y, size, dirRad){
+    ctx.save();
+    ctx.translate(x, y);
+
+    // 轻微跟随方向倾斜 + 抖动一点点（更灵动）
+    const wobble = (Math.random()-0.5) * 0.18;
+    ctx.rotate((dirRad || 0) * 0.35 + wobble);
+
+    // 外发光（橙色）
+    ctx.shadowColor = 'rgba(255, 122, 24, 0.75)';
+    ctx.shadowBlur = GLOW * 1.25;
+
+    const w = size;
+    const h = size * 1.18;
+
+    const grad = ctx.createLinearGradient(0, -h*0.6, 0, h*0.6);
+    grad.addColorStop(0, 'rgba(255, 221, 106, 0.98)');
+    grad.addColorStop(0.55, 'rgba(255, 156, 60, 0.98)');
+    grad.addColorStop(1, 'rgba(255, 122, 24, 0.98)');
+    ctx.fillStyle = grad;
+
+    // 泪滴火焰轮廓
+    ctx.beginPath();
+    ctx.moveTo(0, -h*0.62);
+    ctx.bezierCurveTo(w*0.55, -h*0.35, w*0.62, h*0.15, 0, h*0.55);
+    ctx.bezierCurveTo(-w*0.62, h*0.15, -w*0.55, -h*0.35, 0, -h*0.62);
+    ctx.closePath();
+    ctx.fill();
+
+    // 高光
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(255,255,255,0.22)';
+    ctx.beginPath();
+    ctx.ellipse(-w*0.18, -h*0.10, w*0.18, h*0.22, -0.35, 0, Math.PI*2);
+    ctx.fill();
+
+    // 眼睛
+    ctx.fillStyle = 'rgba(17,24,39,0.55)';
+    const eyeY = h*0.14;
+    const r = Math.max(1.4, size*0.08);
+    ctx.beginPath();
+    ctx.arc(-w*0.14, eyeY, r, 0, Math.PI*2);
+    ctx.arc( w*0.14, eyeY, r, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function hexToRgba(hex, a){
+    const c = hex.replace('#','').trim();
+    const v = c.length === 3
+      ? c.split('').map(ch => parseInt(ch+ch, 16))
+      : [parseInt(c.slice(0,2),16), parseInt(c.slice(2,4),16), parseInt(c.slice(4,6),16)];
+    return `rgba(${v[0]}, ${v[1]}, ${v[2]}, ${a})`;
+  }
+
+
+  function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
+
+  // ===== 事件 =====
+  openDraw.addEventListener('click', openPanel);
+  closeBtn.addEventListener('click', closePanel);
+  clearBtn.addEventListener('click', clearCanvas);
+
+  overlay.addEventListener('wheel', (e)=>e.preventDefault(), { passive:false });
+
+
+
+
+  // 打开/关闭颜色选择
+  colorBtn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    togglePop(colorPop);
+  });
+  colorBtn.addEventListener('mousedown', (e)=>e.stopPropagation());
+  colorPop.addEventListener('mousedown', (e)=>e.stopPropagation());
+  colorPop.addEventListener('touchstart', (e)=>e.stopPropagation(), { passive:false });
+
+
+// 如果你已有 brushBtn 的 pop，建议也加 stopPropagation
+  brushBtn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    // console.log('brushPop=', brushPop);
+    togglePop(brushPop);
+  });
+
+  // 关键：拦截 mousedown，避免 overlay 的 mousedown 抢先把弹层关掉
+  brushBtn.addEventListener('mousedown', (e)=>e.stopPropagation());
+  brushPop.addEventListener('mousedown', (e)=>e.stopPropagation());
+  brushPop.addEventListener('click', (e) => e.stopPropagation());  // ✅ 必须
+  brushPop.addEventListener('touchstart', (e)=>e.stopPropagation(), { passive:false });
+
+
+// 选色：事件委托
+  colorPop.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    const btn = e.target.closest('.swatch');
+    if (!btn) return;
+
+    BRUSH_COLOR = btn.dataset.color;
+
+    // 更新选中态
+    colorPop.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+    btn.classList.add('active');
+
+    // 选完关闭
+    closePops();
+
+    // 选色后如果笔尖存在，补画一下让用户立刻看到变化
+    if (typeof hasCursor !== 'undefined' && hasCursor && typeof drawCursorDot === 'function'){
+        drawCursorDot(cursorX, cursorY);
+      }
+    });
+
+  // 点击面板其他区域关闭浮层（包括 canvas）
+  overlay.addEventListener('click', (e)=>{
+    // 点到按钮/浮层内部不关（它们有 stopPropagation）
+    closePops();
+  });
+  overlay.addEventListener('touchstart', ()=>{
+    closePops();
+  }, { passive:true });
+
+
+  function saveHistory(){
+    try {
+      const snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      historyStack.push(snapshot);
+      if (historyStack.length > MAX_HISTORY) historyStack.shift();
+    } catch (e) {
+      console.warn('saveHistory failed', e);
+    }
+  }
+
+  function undoLast(){
+    if (historyStack.length === 0) return;
+    const last = historyStack.pop();
+    ctx.putImageData(last, 0, 0);
+  }
+
+
+  function onDown(e){
+    if (ended) return;
+    e.preventDefault();
+
+    saveHistory();
+
+    const p = getPoint(e);
+    drawing = true;
+
+    if (!started){
+      started = true;
+      startTimer();
+    }
+    lastX = p.x; lastY = p.y; lastT = performance.now();
+
+    flameX = lastX;
+    flameY = lastY;
+    flameDir = 0;
+
+    // 起笔也画一下笔尖
+    fadeTrail();
+    // drawFlameCursor(flameX, flameY, FLAME_SIZE * 1.05, flameDir);
+  }
+
+  function onMove(e){
+    if (!drawing || ended) return;
+    e.preventDefault();
+    const p = getPoint(e);
+    const now = performance.now();
+
+    // ✅ 先画线条拖尾（内部会 fadeTrail）
+    drawLine(p.x, p.y, now);
+
+    // ✅ 再无条件更新并重画笔尖（保证跟着走）
+    flameDir = Math.atan2(p.y - lastY, p.x - lastX);
+    flameX = p.x;
+    flameY = p.y;
+
+    // drawFlameCursor(flameX, flameY, FLAME_SIZE, flameDir);
+  }
+
+  function onUp(){ drawing = false; }
+
+  canvas.addEventListener('mousedown', onDown);
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+
+  canvas.addEventListener('touchstart', onDown, { passive:false });
+  canvas.addEventListener('touchmove', onMove, { passive:false });
+  canvas.addEventListener('touchend', onUp);
+
+  function syncBrushUI(){
+    brushRange.value = String(BRUSH_SIZE);
+    brushVal.textContent = String(BRUSH_SIZE);
+  }
+  syncBrushUI();
+
+
+  brushRange.addEventListener('input', (e)=>{
+  BRUSH_SIZE = parseInt(e.target.value, 10);
+  brushVal.textContent = String(BRUSH_SIZE);
+
+  // 如果你有“笔尖光点”，可以在当前点补画一次，增强“实时生效”的感觉：
+  if (typeof hasCursor !== 'undefined' && hasCursor){
+      // 注意：不要 fadeTrail，否则会把画面洗掉；直接画个更粗的点即可
+      if (typeof drawCursorDot === 'function'){
+      drawCursorDot(cursorX, cursorY);
+      }
+  }
+  });
+
+  undoBtn.addEventListener('click', ()=>{
+    undoLast();
+  });
+
+
+  redoBtn.addEventListener('click', ()=>{
+    flameX = flameY = null;
+    modalMask.style.display = 'none';
+    stopTimer();
+    started = false;
+    ended = false;
+    drawing = false;
+    remaining = DURATION_SEC;
+    timerText.textContent = '按下开始倒计时';
+    statusText.textContent = '未开始';
+    clearCanvas();
+  });
+
+  shareBtn.addEventListener('click', ()=>{
+    const dataUrl = canvas.toDataURL('image/png');
+
+    const row = document.createElement('div');
+    row.className = 'bubbleRow';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubbleImg';
+
+    const img = document.createElement('img');
+    img.src = dataUrl;
+    img.alt = '涂鸦';
+
+    bubble.appendChild(img);
+
+    const av = document.createElement('div');
+    av.className = 'myAvatar';
+
+    row.appendChild(bubble);
+    row.appendChild(av);
+    chat.appendChild(row);
+    chat.scrollTop = chat.scrollHeight;
+
+    modalMask.style.display = 'none';
+    closePanel();
+  });
+
+  window.addEventListener('resize', ()=>{
+    if (overlay.style.display === 'flex'){
+      fitCanvas();
+    }
+  });
+})();
+</script>
+</body>
+</html>
